@@ -6,13 +6,15 @@ COPY package.json bun.lockb ./
 RUN bun install
 
 COPY . .
-
-# IMPORTANT: production build
 ENV NODE_ENV=production
-RUN bun run build
+
+# IMPORTANT: show build output for debugging
+RUN bun run build && ls -l dist
 
 # ---------- Runtime stage ----------
 FROM nginx:alpine
+
+RUN rm -rf /usr/share/nginx/html/*
 
 COPY --from=build /app/dist /usr/share/nginx/html
 
