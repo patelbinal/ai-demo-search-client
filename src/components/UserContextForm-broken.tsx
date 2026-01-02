@@ -93,11 +93,7 @@ export function UserContextForm({ userContext, onUserContextChange }: UserContex
             }`}
             required={userContext.userType !== "AGENT"}
           />
-          {userContext.userType !== "AGENT" && !userContext.accountId.trim() && (
-            <p className="text-xs text-red-500">
-              Account ID is required for {USER_TYPE_LABELS[userContext.userType].toLowerCase()} users
-            </p>
-          )}
+          />
         </div>
         {/* <div className="space-y-2">
           <Label htmlFor="userId" className="text-sm font-medium text-foreground">

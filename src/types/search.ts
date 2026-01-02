@@ -101,12 +101,77 @@
 // };
 
 // User types for the automotive marketplace
-export type UserType = "seller" | "buyer" | "carrier" | "agent";
+export type UserType = "SELLER" | "BUYER" | "CARRIER" | "AGENT";
 export interface UserContext {
   userType: UserType;
   accountId: string;
-  userId: string;
+  userId?: string;
 }
+
+// API Request/Response types for the actual search endpoint
+export interface SearchRequest {
+  userType: UserType;
+  accountId: string;
+  searchText: string;
+  page: number;
+  limit: number;
+  // Optional filters
+  filters?: {
+    status?: string;
+    make?: string;
+    model?: string;
+    minYear?: number;
+    maxYear?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    location?: string;
+  };
+}
+
+export interface ApiSearchResult {
+  entityType: "offer" | "purchase" | "transport";
+  entityId: string;
+  vin?: string;
+  sellerId?: string;
+  offerId?: string;
+  carrierId?: string;
+  buyerId?: string;
+  purchaseId?: string;
+  status: string;
+  searchableText: string;
+  createdAt: string;
+  updatedAt: string;
+  permissions: {
+    sellerIds: string[];
+    buyerIds: string[];
+    carrierIds: string[];
+  };
+  // Offer specific fields
+  make?: string;
+  model?: string;
+  year?: number;
+  price?: string;
+  location?: string;
+  condition?: string;
+  // Purchase specific fields
+  purchasePrice?: string;
+  paymentMethod?: string;
+  // Transport specific fields
+  transportCost?: string;
+  pickupLocation?: string;
+  deliveryLocation?: string;
+  scheduledPickupDate?: string;
+  scheduledDeliveryDate?: string;
+}
+
+export interface ApiSearchResponse {
+  results: ApiSearchResult[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 // Entity types for search results
 export type EntityType = "offer" | "purchase" | "transport";
 // Base interface for all search results
@@ -179,16 +244,16 @@ export interface SearchResponse {
 }
 // Role-based hints for UX
 export const USER_TYPE_HINTS: Record<UserType, string> = {
-  seller: "You can only see your own offers.",
-  buyer: "You can search available offers and your purchase history.",
-  carrier: "You can search your transport assignments and related vehicles.",
-  agent: "You can search across offers, purchases, and transports.",
+  SELLER: "You can only see your own offers.",
+  BUYER: "You can search available offers and your purchase history.",
+  CARRIER: "You can search your transport assignments and related vehicles.",
+  AGENT: "You can search across offers, purchases, and transports.",
 };
 export const USER_TYPE_LABELS: Record<UserType, string> = {
-  seller: "Seller",
-  buyer: "Buyer",
-  carrier: "Carrier",
-  agent: "Agent",
+  SELLER: "Seller",
+  BUYER: "Buyer",
+  CARRIER: "Carrier",
+  AGENT: "Agent",
 };
 // Status filter options for search
 export type StatusFilter = "all" | "complete" | "pending" | "in_transit";

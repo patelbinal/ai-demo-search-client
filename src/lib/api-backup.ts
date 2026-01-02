@@ -1,5 +1,11 @@
 /**
- * API Client for Centralized Search Platform - Fixed Version
+ * API Client for Centralized Search Platform
+ *
+ * TODO: Replace BASE_URL with your actual Search API endpoint
+ * Example: const BASE_URL = 'https://api.yourplatform.com/v1/search';
+ *
+ * Currently using dummy data from src/lib/dummyData.ts
+ * Replace the dummy data implementation with actual API calls when ready.
  */
 import type {
   UserContext,
@@ -33,6 +39,19 @@ const SEARCH_API_URL = "http://localhost:3004/search";
 
 /**
  * Fetch autocomplete suggestions
+ *
+ * @param query - The search query string
+ * @param userContext - User context for role-based filtering
+ * @returns Promise<AutocompleteSuggestion[]>
+ *
+ * TODO: Replace with actual API call:
+ * const response = await fetch(`${BASE_URL}/autocomplete`, {
+ *   method: 'POST',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify({ query, ...userContext }),
+ * });
+ * const data = await response.json();
+ * return mapAutocompleteSuggestions(data);
  */
 export async function fetchAutocomplete(
   query: string,
@@ -76,8 +95,8 @@ function transformApiResult(apiResult: ApiSearchResult): any {
         offerVin: apiResult.vin || '',
         offerMake: apiResult.make || '',
         offerModel: apiResult.model || '',
-        buyerName: 'Buyer',
-        buyerEmail: 'buyer@example.com',
+        buyerName: 'Buyer', // This might need to come from another API
+        buyerEmail: 'buyer@example.com', // This might need to come from another API
         purchaseDate: apiResult.createdAt,
         status: mapPurchaseStatus(apiResult.status),
       };
@@ -85,8 +104,8 @@ function transformApiResult(apiResult: ApiSearchResult): any {
       return {
         ...base,
         transportId: apiResult.entityId,
-        carrierName: 'Carrier',
-        carrierPhone: '555-0123',
+        carrierName: 'Carrier', // This might need to come from another API
+        carrierPhone: '555-0123', // This might need to come from another API
         pickupLocation: apiResult.pickupLocation || '',
         deliveryLocation: apiResult.deliveryLocation || '',
         scheduleDate: apiResult.scheduledPickupDate || apiResult.createdAt,
@@ -138,79 +157,6 @@ function mapTransportStatus(status: string): "scheduled" | "in_transit" | "deliv
 }
 
 /**
- * Fetch search results from real API with filters
- */
-export async function fetchSearchResultsFromAPIWithFilters(
-  query: string,
-  filters: SearchFilters,
-  userContext: UserContext,
-  pagination: { page: number; pageSize: number } = { page: 1, pageSize: 20 }
-): Promise<SearchResponse> {
-  // Convert SearchFilters to API format
-  const apiFilters = {
-    status: filters.status !== 'all' ? filters.status : undefined,
-    make: filters.make || undefined,
-    model: filters.model || undefined,
-    minYear: filters.minYear ? parseInt(filters.minYear) : undefined,
-    maxYear: filters.maxYear ? parseInt(filters.maxYear) : undefined,
-    minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
-    maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
-    location: filters.location || undefined,
-  };
-
-  // Remove undefined values
-  const cleanFilters = Object.fromEntries(
-    Object.entries(apiFilters).filter(([_, value]) => value !== undefined)
-  );
-
-  const requestPayload: SearchRequest = {
-    userType: userContext.userType,
-    accountId: userContext.accountId,
-    searchText: query,
-    page: pagination.page,
-    limit: pagination.pageSize,
-    ...(Object.keys(cleanFilters).length > 0 && { filters: cleanFilters }),
-  };
-
-  const response = await fetch(SEARCH_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestPayload),
-  });
-
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const apiResponse: ApiSearchResponse = await response.json();
-
-  // Transform API results into internal format
-  const transformedResults = apiResponse.results.map(transformApiResult);
-
-  // Group results by entity type
-  const offers = transformedResults.filter(r => r.entityType === 'offer');
-  const purchases = transformedResults.filter(r => r.entityType === 'purchase');
-  const transports = transformedResults.filter(r => r.entityType === 'transport');
-
-  return {
-    query,
-    totalResults: apiResponse.total,
-    results: {
-      offers,
-      purchases,
-      transports,
-    },
-    pagination: {
-      page: apiResponse.page,
-      pageSize: apiResponse.limit,
-      totalPages: apiResponse.pages,
-    },
-  };
-}
-
-/**
  * Fetch search results from real API
  */
 export async function fetchSearchResultsFromAPI(
@@ -218,54 +164,60 @@ export async function fetchSearchResultsFromAPI(
   userContext: UserContext,
   pagination: { page: number; pageSize: number } = { page: 1, pageSize: 20 }
 ): Promise<SearchResponse> {
-  const requestPayload: SearchRequest = {
-    userType: userContext.userType,
-    accountId: userContext.accountId,
-    searchText: query,
-    page: pagination.page,
-    limit: pagination.pageSize,
-  };
+  try {
+    const requestPayload: SearchRequest = {
+      userType: userContext.userType,
+      accountId: userContext.accountId,
+      searchText: query,
+      page: pagination.page,
+      limit: pagination.pageSize,
+    };
 
-  const response = await fetch(SEARCH_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestPayload),
-  });
+    const response = await fetch(SEARCH_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestPayload),
+    });
 
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const apiResponse: ApiSearchResponse = await response.json();
+
+    // Transform API results into internal format
+    const transformedResults = apiResponse.results.map(transformApiResult);
+
+    // Group results by entity type
+    const offers = transformedResults.filter(r => r.entityType === 'offer');
+    const purchases = transformedResults.filter(r => r.entityType === 'purchase');
+    const transports = transformedResults.filter(r => r.entityType === 'transport');
+
+    return {
+      query,
+      totalResults: apiResponse.total,
+      results: {
+        offers,
+        purchases,
+        transports,
+      },
+      pagination: {
+        page: apiResponse.page,
+        pageSize: apiResponse.limit,
+        totalPages: apiResponse.pages,
+      },
+    };
+  } catch (error) {
+    console.error('Search API error:', error);
+    // Fallback to dummy data on error - call the dummy implementation directly
+    return fetchSearchResultsLegacy(query, userContext, pagination, "all");
   }
-
-  const apiResponse: ApiSearchResponse = await response.json();
-
-  // Transform API results into internal format
-  const transformedResults = apiResponse.results.map(transformApiResult);
-
-  // Group results by entity type
-  const offers = transformedResults.filter(r => r.entityType === 'offer');
-  const purchases = transformedResults.filter(r => r.entityType === 'purchase');
-  const transports = transformedResults.filter(r => r.entityType === 'transport');
-
-  return {
-    query,
-    totalResults: apiResponse.total,
-    results: {
-      offers,
-      purchases,
-      transports,
-    },
-    pagination: {
-      page: apiResponse.page,
-      pageSize: apiResponse.limit,
-      totalPages: apiResponse.pages,
-    },
-  };
 }
 
 /**
- * Dummy data implementation
+ * Legacy dummy data implementation
  */
 async function fetchSearchResultsLegacy(
   query: string,
@@ -273,6 +225,7 @@ async function fetchSearchResultsLegacy(
   pagination: { page: number; pageSize: number } = { page: 1, pageSize: 20 },
   statusFilter: StatusFilter = "all"
 ): Promise<SearchResponse> {
+  // Original dummy data implementation
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -304,6 +257,7 @@ async function fetchSearchResultsLegacy(
   );
 
   // Step 3: Apply user context filtering (role-based filtering)
+  // In production, this filtering happens on the backend based on accountId/userId
   const { offers, purchases, transports } = filterByUserContext(
     filteredOffers,
     filteredPurchases,
@@ -339,74 +293,50 @@ async function fetchSearchResultsLegacy(
 }
 
 /**
- * Main search function - tries API first, falls back to dummy data
- * This is the main function that should be called from components
- */
-export async function fetchSearchResults(
-  query: string,
-  userContext: UserContext,
-  pagination: { page: number; pageSize: number } = { page: 1, pageSize: 20 },
-  statusFilter: StatusFilter = "all",
-  useRealAPI: boolean = true
-): Promise<SearchResponse> {
-  // Use real API if requested and available
-  if (useRealAPI) {
-    try {
-      return await fetchSearchResultsFromAPI(query, userContext, pagination);
-    } catch (error) {
-      console.warn('Real API failed, falling back to dummy data:', error);
-      // Fall through to dummy data
-    }
-  }
-
-  // Use dummy data implementation
-  return fetchSearchResultsLegacy(query, userContext, pagination, statusFilter);
-}
-
-/**
- * Fetch search results with advanced filters - now uses real API
+ * Fetch search results with advanced filters
+ *
+ * @param query - The search query string (can be empty)
+ * @param filters - Advanced search filters
+ * @param userContext - User context for role-based filtering
+ * @param pagination - Pagination parameters
+ * @returns Promise<SearchResponse>
+ *
+ * TODO: Replace with actual API call:
+ * const response = await fetch(`${BASE_URL}/search`, {
+ *   method: 'POST',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify({ query, filters, ...userContext, ...pagination }),
+ * });
+ * const data = await response.json();
+ * return mapSearchResponse(data);
  */
 export async function fetchSearchResultsWithFilters(
   query: string,
   filters: SearchFilters,
   userContext: UserContext,
-  pagination: { page: number; pageSize: number } = { page: 1, pageSize: 5 },
-  useRealAPI: boolean = true
+  pagination: { page: number; pageSize: number } = { page: 1, pageSize: 5 }
 ): Promise<SearchResponse> {
-  // Use real API if requested and available
-  if (useRealAPI) {
-    try {
-      return await fetchSearchResultsFromAPIWithFilters(query, filters, userContext, pagination);
-    } catch (error) {
-      console.warn('Real API with filters failed, falling back to dummy data:', error);
-      // Fall through to dummy data
-    }
-  }
-
-  // Fallback to dummy data implementation
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // If no query, return empty results
-  if (!query.trim()) {
-    return {
-      query,
-      totalResults: 0,
-      results: { offers: [], purchases: [], transports: [] },
-      pagination: {
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalPages: 0,
-      },
-    };
+  // Step 1: Start with all dummy data
+  let filteredOffers = [...DUMMY_OFFERS];
+  let filteredPurchases = [...DUMMY_PURCHASES];
+  let filteredTransports = [...DUMMY_TRANSPORTS];
+
+  // Step 2: Apply query filtering if query exists
+  if (query.trim()) {
+    filteredOffers = filterOffersByQuery(filteredOffers, query);
+    filteredPurchases = filterPurchasesByQuery(filteredPurchases, query);
+    filteredTransports = filterTransportsByQuery(filteredTransports, query);
   }
 
-  // Apply advanced filters to dummy data
-  let filteredOffers = filterOffersAdvanced(DUMMY_OFFERS, filters);
-  let filteredPurchases = filterPurchasesAdvanced(DUMMY_PURCHASES, filters);
-  let filteredTransports = filterTransportsAdvanced(DUMMY_TRANSPORTS, filters);
+  // Step 3: Apply advanced filtering
+  filteredOffers = filterOffersAdvanced(filteredOffers, filters);
+  filteredPurchases = filterPurchasesAdvanced(filteredPurchases, filters);
+  filteredTransports = filterTransportsAdvanced(filteredTransports, filters);
 
-  // Apply user context filtering
+  // Step 4: Apply user context filtering (role-based filtering)
   const { offers, purchases, transports } = filterByUserContext(
     filteredOffers,
     filteredPurchases,
@@ -414,7 +344,7 @@ export async function fetchSearchResultsWithFilters(
     userContext
   );
 
-  // Apply pagination
+  // Step 5: Apply pagination (default 5 per page for view more functionality)
   const startIndex = (pagination.page - 1) * pagination.pageSize;
   const endIndex = startIndex + pagination.pageSize;
 
