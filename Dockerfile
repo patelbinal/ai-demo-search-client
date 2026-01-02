@@ -1,19 +1,20 @@
-# Use the official Bun image
-FROM oven/bun:latest
-
+# ---------- Build stage ----------
+FROM oven/bun:latest AS build
 WORKDIR /app
 
-# Copy package.json and bun.lockb
 COPY package.json bun.lockb ./
-
-# Install dependencies
 RUN bun install
 
-# Copy the rest of the application code
 COPY . .
 
-# Expose port for Vite dev server
-EXPOSE 5173
+# IMPORTANT: production build
+ENV NODE_ENV=production
+RUN bun run build
 
-# Start the development server
-CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
+# ---------- Runtime stage ----------
+FROM nginx:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
