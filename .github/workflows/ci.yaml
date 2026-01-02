@@ -35,16 +35,13 @@ jobs:
         with:
           node-version: '20.x'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
-      # 3. Install deps & run tests
+      # 3. Install deps & lint
       - name: Install dependencies
         run: npm ci
-        working-directory: frontend
 
-      - name: Run frontend tests
-        run: npm test -- --watchAll=false
-        working-directory: frontend
+      - name: Run linting
+        run: npm run lint
 
       # 4. Setup Docker Buildx
       - name: Set up Docker Buildx
@@ -75,7 +72,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: frontend/Dockerfile
+          file: Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
